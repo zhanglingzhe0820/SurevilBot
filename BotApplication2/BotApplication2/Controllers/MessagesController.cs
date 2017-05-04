@@ -20,9 +20,15 @@ namespace BotApplication2
         /// POST: api/Messages
         /// Receive a message from a user and reply to it
         /// </summary>
+        static bool ifWelcome = true;
         public async Task<HttpResponseMessage> Post([FromBody]Activity activity)
         {
-            if (activity.Type == ActivityTypes.Message)
+            if (ifWelcome)
+            {
+                ifWelcome =false;
+                await Conversation.SendAsync(activity, () => new WelcomeDialog());    
+            }
+            else if (activity.Type == ActivityTypes.Message)
             {
                 await Conversation.SendAsync(activity, () => new SurevilDialog());
             }
@@ -63,10 +69,41 @@ namespace BotApplication2
             return null;
         }
 
+        [Serializable]
+        public class WelcomeDialog : LuisDialog<object>
+        {
+            override public async Task StartAsync(IDialogContext context)
+            {
+                context.Wait(WelcomeAsync);
+            }
+
+            public async Task WelcomeAsync(IDialogContext context, IAwaitable<object> result)
+            {
+                string message = "呀~你好，我叫surevil，我应该全知全能的，可是现在还只能查音乐，以及告诉你我主人的联系方式（委屈巴巴），希望你是个妹子……";
+                await context.PostAsync(message);
+            }
+        }
+
         [LuisModel("5a4c078a-e90d-49b3-81cc-aba022b38b99", "a811cfdd46a24275945d8e563c9cd047")]
         [Serializable]
         public class SurevilDialog : LuisDialog<object>
         {
+            /*static int count = 0;
+            public async Task ifSendWelcome(IDialogContext context)
+            {
+                if (count == 0)
+                {
+                    await WelcomeAsync(context);
+                    count++;
+                }
+            }
+
+            public async Task WelcomeAsync(IDialogContext context)
+            {
+                string message = "呀~你好，我叫surevil，我应该全知全能的，可是现在还只能查音乐，以及告诉你我主人的联系方式（委屈巴巴），希望你是个妹子……";
+                await context.PostAsync(message);
+            }*/
+
             public SurevilDialog()
             {
             }
@@ -75,9 +112,21 @@ namespace BotApplication2
             {
             }
 
+            [LuisIntent("询问机器人的主人")]
+            public async Task TellMaster(IDialogContext context,LuisResult result)
+            {
+                // ifSendWelcome(context);
+
+                string message = "张凌哲，联系方式：<br>QQ：445073309<br>Phone：18851822162<br>欢迎各路妹子来联系我（斜眼笑）";
+                await context.PostAsync(message);
+                context.Wait(MessageReceived);
+            }
+
             [LuisIntent("")]
             public async Task None(IDialogContext context,LuisResult result)
             {
+                //await ifSendWelcome(context);
+
                 string message = "我还只能帮你找歌词，别的是不存在的！";
                 await context.PostAsync(message);
                 context.Wait(MessageReceived);
@@ -86,6 +135,8 @@ namespace BotApplication2
             [LuisIntent("查询歌词")]
             public async Task SearchSong(IDialogContext context,LuisResult result)
             {
+                //await ifSendWelcome(context);
+
                 string song = "";
                 string name = "";
 
@@ -116,6 +167,8 @@ namespace BotApplication2
             [LuisIntent("随便拿一首该歌星的歌")]
             public async Task SingerSong(IDialogContext context,LuisResult result)
             {
+                //await ifSendWelcome(context);
+
                 string singer = "";
                 string reply = "";
                 if (CanGetSinger(result,out singer))
@@ -137,6 +190,8 @@ namespace BotApplication2
             [LuisIntent("查找哪首歌里有哪个字")]
             public async Task FindWord(IDialogContext context, LuisResult result)
             {
+                //await ifSendWelcome(context);
+
                 string singer = "";
                 string word = "";
                 string reply = "";
@@ -155,6 +210,8 @@ namespace BotApplication2
                 await context.PostAsync(reply);
                 context.Wait(MessageReceived);
             }
+
+
 
             public string GetSongOfWord(string singer,string word)
             {
